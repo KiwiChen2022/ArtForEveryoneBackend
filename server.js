@@ -6,6 +6,7 @@ const mime = require("mime");
 const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
+const { Configuration, OpenAIApi } = require("openai");
 require("dotenv").config();
 
 const app = express();
@@ -72,7 +73,7 @@ app.post("/upload", async (req, res) => {
 
   // initialize NFT Storage
   const nftStorage = new NFTStorage({
-    token: process.env.REACT_APP_NFT_STORAGE_API_KEY,
+    token: process.env.NFT_STORAGE_API_KEY,
   });
 
   // store image
@@ -89,6 +90,26 @@ app.post("/upload", async (req, res) => {
     const url = `https://ipfs.io/ipfs/${ipnft}/metadata.json`;
     res.json({ url });
   } catch (error) {
+    res.status(500).json({ error: "An error occurred" });
+  }
+});
+
+app.post("/api/chat", async (req, res) => {
+  const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  const openai = new OpenAIApi(configuration);
+
+  try {
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: req.body.messages,
+    });
+    const chatGptMessage = completion.data.choices[0].message;
+    console.log("chatGptMessage", chatGptMessage);
+    res.json({ message: chatGptMessage });
+  } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "An error occurred" });
   }
 });
