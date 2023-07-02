@@ -87,63 +87,6 @@ app.post("/upscale", async (req, res) => {
   }
 });
 
-app.post("/upload", async (req, res) => {
-  try {
-    const imageURL = req.body.imageURL;
-
-    // Download the image
-    const response = await axios.get(imageURL, {
-      responseType: "arraybuffer",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-        Accept: "image/png",
-      },
-    });
-    const buffer = Buffer.from(response.data);
-
-    if (response.status !== 200) {
-      throw new Error(
-        `Failed to download image from URL: ${imageURL}. Status: ${response.status}`
-      );
-    }
-
-    // initialize NFT Storage
-    const nftStorage = new NFTStorage({
-      token: process.env.NFT_STORAGE_API_KEY,
-    });
-
-    // store image
-    let metadata;
-    try {
-      metadata = await nftStorage.storeDirectory([
-        new File([buffer], "image.png", { type: "image/png" }),
-      ]);
-    } catch (error) {
-      console.error("Failed to store image in directory:", error);
-      throw error;
-    }
-
-    let ipnft;
-    try {
-      ipnft = await nftStorage.store({
-        name: req.body.name,
-        description: req.body.description,
-        image: metadata.ipnft + "/image.png",
-      });
-    } catch (error) {
-      console.error("Failed to store NFT:", error);
-      throw error;
-    }
-
-    const url = `https://ipfs.io/ipfs/${ipnft}/metadata.json`;
-    res.json({ url });
-  } catch (error) {
-    console.error("An error occurred:", error);
-    res.status(500).json({ error: "An error occurred" });
-  }
-});
-
 app.post("/api/chat", async (req, res) => {
   const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
