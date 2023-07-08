@@ -7,10 +7,12 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
 const { Configuration, OpenAIApi } = require("openai");
+const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.post("/api/imagine", async (req, res) => {
   const prompt = req.body.prompt;
