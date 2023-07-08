@@ -12,7 +12,7 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 
-app.post("/imagine", async (req, res) => {
+app.post("/api/imagine", async (req, res) => {
   const prompt = req.body.prompt;
   console.log("prompt", prompt);
   const data = JSON.stringify({
@@ -39,7 +39,7 @@ app.post("/imagine", async (req, res) => {
   }
 });
 
-app.post("/result", async (req, res) => {
+app.post("/api/result", async (req, res) => {
   const taskId = req.body.taskId;
   const resultData = JSON.stringify({ taskId });
   const resultConfig = {
@@ -63,7 +63,7 @@ app.post("/result", async (req, res) => {
   }
 });
 
-app.post("/upscale", async (req, res) => {
+app.post("/api/upscale", async (req, res) => {
   const { taskId, position, callbackURL } = req.body;
   const upscaleData = JSON.stringify({ taskId, position, callbackURL });
   const upscaleConfig = {
