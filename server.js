@@ -28,27 +28,53 @@ const s3 = new AWS.S3({
   Bucket: BUCKET_NAME,
 });
 
-app.post("/api/upload", upload.single("image"), (req, res) => {
+app.post("/api/upload", upload.single("image"), async (req, res) => {
   const file = req.file;
-  const s3FileURL = `https://${BUCKET_NAME}.s3.amazonaws.com/${file.originalname}`;
+  const targetImageURL = req.body.targetImageURL;
+  let uniqueFileName = `${Date.now()}-${file.originalname}`;
+  let s3FileURL = `https://${BUCKET_NAME}.s3.amazonaws.com/${uniqueFileName}`;
 
   let params = {
     Bucket: BUCKET_NAME,
-    Key: file.originalname,
+    Key: uniqueFileName,
     Body: fs.createReadStream(file.path),
-    ACL: "public-read",
   };
 
-  s3.upload(params, (err, data) => {
+  s3.upload(params, async (err, data) => {
     if (err) {
       res.status(500).json({ error: "Error -> " + err });
     }
     // remove the file from the temporary folder
     fs.unlinkSync(file.path);
-    res.json({
-      message: "File uploaded successfully! -> keyname = " + file.originalname,
-      url: s3FileURL,
+
+    const faceswapData = JSON.stringify({
+      targetImageURL: targetImageURL,
+      faceImageURL: s3FileURL,
     });
+
+    const faceswapConfig = {
+      method: "post",
+      maxBodyLength: Infinity,
+      url: "https://api.midjourneyapi.io/v2/faceswap",
+      headers: {
+        Authorization: process.env.MIDJOURNEY_API_KEY,
+        "Content-Type": "application/json",
+      },
+      data: faceswapData,
+    };
+    console.log("faceswapData", faceswapData);
+    try {
+      const faceswapResponse = await axios.request(faceswapConfig);
+      res.json({
+        message: "File uploaded and face swapped successfully!",
+        url: faceswapResponse.data.imageURL,
+      });
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while calling the faceswap API" });
+    }
   });
 });
 
