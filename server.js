@@ -8,11 +8,49 @@ const fs = require("fs");
 const path = require("path");
 const { Configuration, OpenAIApi } = require("openai");
 const cors = require("cors");
+const AWS = require("aws-sdk");
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Configure AWS with your access and secret key.
+const { ACCESS_KEY_ID, SECRET_ACCESS_KEY, BUCKET_NAME } = process.env;
+
+// Configure AWS to use promise
+AWS.config.setPromisesDependency(require("bluebird"));
+const s3 = new AWS.S3({
+  accessKeyId: ACCESS_KEY_ID,
+  secretAccessKey: SECRET_ACCESS_KEY,
+  Bucket: BUCKET_NAME,
+});
+
+app.post("/api/upload", upload.single("image"), (req, res) => {
+  const file = req.file;
+  const s3FileURL = `https://${BUCKET_NAME}.s3.amazonaws.com/${file.originalname}`;
+
+  let params = {
+    Bucket: BUCKET_NAME,
+    Key: file.originalname,
+    Body: fs.createReadStream(file.path),
+    ACL: "public-read",
+  };
+
+  s3.upload(params, (err, data) => {
+    if (err) {
+      res.status(500).json({ error: "Error -> " + err });
+    }
+    // remove the file from the temporary folder
+    fs.unlinkSync(file.path);
+    res.json({
+      message: "File uploaded successfully! -> keyname = " + file.originalname,
+      url: s3FileURL,
+    });
+  });
+});
 
 app.post("/api/imagine", async (req, res) => {
   const prompt = req.body.prompt;
